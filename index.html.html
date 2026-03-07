@@ -8,18 +8,19 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0e0e0e;
-      --surface: #161616;
-      --surface2: #1f1f1f;
-      --border: #2a2a2a;
-      --accent: #d4a843;
-      --text: #d8d8d8;
-      --text-dim: #555;
+      --bg: transparent;
+      --surface: rgba(255, 255, 255, 0.82);
+      --surface2: rgba(255, 255, 255, 0.95);
+      --border: #a8cce8;
+      --accent: #1a6fb5;
+      --text: #1a2a3a;
+      --text-dim: #6a90b0;
       --danger: #c94444;
     }
 
     body {
-      background: var(--bg);
+      background: linear-gradient(160deg, #87CEEB 0%, #c9e8f7 40%, #e8f4fb 70%, #ffffff 100%);
+      background-attachment: fixed;
       color: var(--text);
       font-family: 'Courier New', Courier, monospace;
       font-size: 13px;
@@ -178,7 +179,7 @@
     }
 
     thead tr {
-      background: var(--surface);
+      background: rgba(255, 255, 255, 0.95);
       border-bottom: 1px solid var(--accent);
     }
 
@@ -192,7 +193,7 @@
       font-weight: normal;
       position: sticky;
       top: 0;
-      background: var(--surface);
+      background: rgba(255, 255, 255, 0.95);
       z-index: 1;
     }
 
