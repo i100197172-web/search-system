@@ -293,6 +293,7 @@
 
   // Cache for all fetched data
   let cachedData = null;
+  let currentParams = {};
 
   // Build search fields
   const grid = document.getElementById('searchGrid');
@@ -356,6 +357,7 @@
       }
 
       // Client-side filtering (OR across fields, OR across comma-separated terms)
+      currentParams = params;
       const filtered = cachedData.filter(row => {
         return Object.entries(params).some(([key, val]) => {
           if (!val) return false;
@@ -397,7 +399,25 @@
 
     tbody.innerHTML = data.map(row => {
       const cells = ALL_COLUMNS.map(col => {
-        const val = row[col] !== undefined && row[col] !== null ? String(row[col]) : '';
+        let val;
+        if (col === '備註') {
+          const matchedFields = Object.entries(currentParams)
+            .filter(([key, v]) => {
+              if (!v) return false;
+              const cellVal = String(row[key] ?? '').toLowerCase();
+              const terms = v.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+              return terms.some(t => cellVal.includes(t));
+            })
+            .map(([key]) => key);
+          const platform = row['平台'] || '';
+          const member = row['会员'] || '';
+          const reason = row['原因'] || '';
+          val = matchedFields.length > 0
+            ? `與${platform} ${member} 同${matchedFields.join('、')}，原因: ${reason}`
+            : '';
+        } else {
+          val = row[col] !== undefined && row[col] !== null ? String(row[col]) : '';
+        }
         const safe = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
         return `<td title="${safe}">${safe || '—'}</td>`;
       }).join('');
