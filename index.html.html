@@ -391,7 +391,17 @@
   ];
 
   const SEARCH_FIELDS = [
-    '会员', '姓名', '銀行卡', 'USDT地址', '购宝钱包', '設備唯一碼', 'IP'
+    { label: '会员',     keys: ['会员'] },
+    { label: '姓名',     keys: ['姓名'] },
+    { label: '銀行卡',   keys: ['銀行卡'] },
+    { label: 'USDT地址', keys: ['USDT地址'] },
+    { label: '购宝钱包', keys: ['购宝钱包'] },
+    { label: '支付寶錢包', keys: ['USDT地址', '购宝钱包'] },
+    { label: 'OKPAY',    keys: ['USDT地址', '购宝钱包'] },
+    { label: 'K豆錢包',  keys: ['USDT地址', '购宝钱包'] },
+    { label: 'MPAY',     keys: ['USDT地址', '购宝钱包'] },
+    { label: '設備唯一碼', keys: ['設備唯一碼'] },
+    { label: 'IP',       keys: ['IP'] },
   ];
 
   const ALL_COLUMNS = [
@@ -406,27 +416,26 @@
 
   // Build search fields
   const grid = document.getElementById('searchGrid');
-  SEARCH_FIELDS.forEach(field => {
+  SEARCH_FIELDS.forEach(({ label }) => {
     const div = document.createElement('div');
     div.className = 'field-group';
-    const id = 'field_' + field;
-    div.innerHTML = `<label>${field}</label><input type="text" id="${id}" placeholder="...">`;
+    div.innerHTML = `<label>${label}</label><input type="text" id="field_${label}" placeholder="...">`;
     grid.appendChild(div);
   });
 
   function getParams() {
     const params = {};
-    SEARCH_FIELDS.forEach(field => {
-      const el = document.getElementById('field_' + field);
+    SEARCH_FIELDS.forEach(({ label, keys }) => {
+      const el = document.getElementById('field_' + label);
       const val = el ? el.value.trim() : '';
-      if (val) params[field] = val;
+      if (val) params[label] = { val, keys };
     });
     return params;
   }
 
   function clearAll() {
-    SEARCH_FIELDS.forEach(field => {
-      const el = document.getElementById('field_' + field);
+    SEARCH_FIELDS.forEach(({ label }) => {
+      const el = document.getElementById('field_' + label);
       if (el) el.value = '';
     });
     const stateBox = document.getElementById('stateBox');
@@ -491,11 +500,12 @@
       // Client-side filtering (exact match, OR across fields, OR across comma-separated terms)
       currentParams = params;
       const filtered = cachedData.filter(row => {
-        return Object.entries(params).some(([key, val]) => {
-          if (!val) return false;
-          const cellVal = String(row[key] ?? '').toLowerCase();
+        return Object.values(params).some(({ val, keys }) => {
           const terms = val.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
-          return terms.some(t => cellVal === t);
+          return keys.some(key => {
+            const cellVal = String(row[key] ?? '').toLowerCase();
+            return terms.some(t => cellVal === t);
+          });
         });
       });
 
@@ -511,13 +521,14 @@
 
   function generateRemark(row) {
     const matchedFields = Object.entries(currentParams)
-      .filter(([key, v]) => {
-        if (!v) return false;
-        const cellVal = String(row[key] ?? '').toLowerCase();
-        const terms = v.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
-        return terms.some(t => cellVal === t);
+      .filter(([label, { val, keys }]) => {
+        const terms = val.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+        return keys.some(key => {
+          const cellVal = String(row[key] ?? '').toLowerCase();
+          return terms.some(t => cellVal === t);
+        });
       })
-      .map(([key]) => key);
+      .map(([label]) => label);
     if (matchedFields.length === 0) return '';
     const platform = row['平台'] || '';
     const member = row['会员'] || '';
