@@ -241,6 +241,74 @@
       padding: 8px 14px;
       border: 1px solid var(--danger);
     }
+
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th.sortable:hover {
+      color: var(--text);
+    }
+
+    th .sort-arrow {
+      margin-left: 5px;
+      opacity: 0.4;
+      font-style: normal;
+    }
+
+    th.sort-asc .sort-arrow,
+    th.sort-desc .sort-arrow {
+      opacity: 1;
+      color: var(--accent);
+    }
+
+    .remark-cell {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 200px;
+    }
+
+    .remark-text {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .copy-btn {
+      flex-shrink: 0;
+      padding: 2px 7px;
+      font-size: 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .copy-btn.copied {
+      border-color: #2e9e5b;
+      color: #2e9e5b;
+    }
+
+    .btn-copy-all {
+      border-color: #2e9e5b;
+      color: #2e9e5b;
+    }
+
+    .btn-copy-all:hover {
+      background: #2e9e5b;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -265,7 +333,10 @@
 
   <div class="results-header">
     <div class="panel-label" style="margin:0">// RESULTS</div>
-    <div class="results-count">RECORDS: <span id="countDisplay">—</span></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="btn btn-copy-all" onclick="copyAllRemarks()" id="copyAllBtn" style="display:none">COPY ALL 備註</button>
+      <div class="results-count">RECORDS: <span id="countDisplay">—</span></div>
+    </div>
   </div>
 
   <div class="table-wrapper">
@@ -294,6 +365,8 @@
   // Cache for all fetched data
   let cachedData = null;
   let currentParams = {};
+  let currentData = [];
+  let sortState = { col: null, dir: 1 };
 
   // Build search fields
   const grid = document.getElementById('searchGrid');
@@ -367,6 +440,7 @@
         });
       });
 
+      sortState = { col: null, dir: 1 };
       renderTable(filtered);
     } catch (err) {
       cachedData = null;
@@ -376,13 +450,69 @@
     }
   }
 
+  function generateRemark(row) {
+    const matchedFields = Object.entries(currentParams)
+      .filter(([key, v]) => {
+        if (!v) return false;
+        const cellVal = String(row[key] ?? '').toLowerCase();
+        const terms = v.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
+        return terms.some(t => cellVal.includes(t));
+      })
+      .map(([key]) => key);
+    if (matchedFields.length === 0) return '';
+    const platform = row['平台'] || '';
+    const member = row['会员'] || '';
+    const reason = row['原因'] || '';
+    return `與${platform} ${member} 同${matchedFields.join('、')}，原因: ${reason}`;
+  }
+
+  function sortTable(col) {
+    if (sortState.col === col) {
+      sortState.dir *= -1;
+    } else {
+      sortState.col = col;
+      sortState.dir = 1;
+    }
+    const sorted = [...currentData].sort((a, b) => {
+      const va = String(a[col] ?? '').toLowerCase();
+      const vb = String(b[col] ?? '').toLowerCase();
+      return va < vb ? -sortState.dir : va > vb ? sortState.dir : 0;
+    });
+    renderRows(sorted);
+    renderHeaders();
+  }
+
+  function renderHeaders() {
+    const thead = document.getElementById('tableHead');
+    thead.innerHTML = '<tr>' + ALL_COLUMNS.map(col => {
+      const isSort = sortState.col === col;
+      const arrow = isSort ? (sortState.dir === 1 ? '▲' : '▼') : '⇅';
+      const cls = isSort ? (sortState.dir === 1 ? 'sortable sort-asc' : 'sortable sort-desc') : 'sortable';
+      return `<th class="${cls}" onclick="sortTable('${col}')">${col} <i class="sort-arrow">${arrow}</i></th>`;
+    }).join('') + '</tr>';
+  }
+
+  function renderRows(data) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = data.map(row => {
+      const cells = ALL_COLUMNS.map(col => {
+        const val = col === '備註' ? row['__remark__'] || '' : (row[col] !== undefined && row[col] !== null ? String(row[col]) : '');
+        const safe = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        if (col === '備註') {
+          return `<td><div class="remark-cell"><span class="remark-text" title="${safe}">${safe || '—'}</span>${safe ? `<button class="copy-btn" onclick="copySingle(this,'${safe.replace(/'/g,"\\'")}')">複製</button>` : ''}</div></td>`;
+        }
+        return `<td title="${safe}">${safe || '—'}</td>`;
+      }).join('');
+      return `<tr>${cells}</tr>`;
+    }).join('');
+  }
+
   function renderTable(data) {
     const stateBox = document.getElementById('stateBox');
     const tableScroll = document.getElementById('tableScroll');
-    const thead = document.getElementById('tableHead');
-    const tbody = document.getElementById('tableBody');
 
     document.getElementById('countDisplay').textContent = data.length;
+    document.getElementById('copyAllBtn').style.display = 'none';
 
     if (data.length === 0) {
       stateBox.className = 'state-box';
@@ -392,37 +522,34 @@
       return;
     }
 
+    // Pre-generate remarks and store in data
+    currentData = data.map(row => ({ ...row, __remark__: generateRemark(row) }));
+
     stateBox.style.display = 'none';
     tableScroll.style.display = 'block';
+    document.getElementById('copyAllBtn').style.display = '';
 
-    thead.innerHTML = '<tr>' + ALL_COLUMNS.map(c => `<th>${c}</th>`).join('') + '</tr>';
+    renderHeaders();
+    renderRows(currentData);
+  }
 
-    tbody.innerHTML = data.map(row => {
-      const cells = ALL_COLUMNS.map(col => {
-        let val;
-        if (col === '備註') {
-          const matchedFields = Object.entries(currentParams)
-            .filter(([key, v]) => {
-              if (!v) return false;
-              const cellVal = String(row[key] ?? '').toLowerCase();
-              const terms = v.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
-              return terms.some(t => cellVal.includes(t));
-            })
-            .map(([key]) => key);
-          const platform = row['平台'] || '';
-          const member = row['会员'] || '';
-          const reason = row['原因'] || '';
-          val = matchedFields.length > 0
-            ? `與${platform} ${member} 同${matchedFields.join('、')}，原因: ${reason}`
-            : '';
-        } else {
-          val = row[col] !== undefined && row[col] !== null ? String(row[col]) : '';
-        }
-        const safe = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-        return `<td title="${safe}">${safe || '—'}</td>`;
-      }).join('');
-      return `<tr>${cells}</tr>`;
-    }).join('');
+  function copySingle(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '複製'; btn.classList.remove('copied'); }, 1500);
+    });
+  }
+
+  function copyAllRemarks() {
+    const remarks = currentData.map(r => r['__remark__']).filter(r => r);
+    if (!remarks.length) return;
+    navigator.clipboard.writeText(remarks.join('\n')).then(() => {
+      const btn = document.getElementById('copyAllBtn');
+      const orig = btn.textContent;
+      btn.textContent = '✓ COPIED';
+      setTimeout(() => { btn.textContent = orig; }, 1500);
+    });
   }
 
   document.addEventListener('keydown', e => {
