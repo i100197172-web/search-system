@@ -313,6 +313,25 @@
 </head>
 <body>
 
+<!-- Login Screen -->
+<div id="loginScreen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+  <div style="background:rgba(255,255,255,0.88);border:1px solid #a8cce8;padding:40px 50px;min-width:320px;text-align:center;">
+    <div style="font-size:15px;letter-spacing:5px;color:#1a6fb5;text-transform:uppercase;margin-bottom:8px;">DATA SEARCH SYSTEM</div>
+    <div style="font-size:10px;letter-spacing:3px;color:#6a90b0;margin-bottom:30px;">// GOOGLE SHEETS QUERY INTERFACE</div>
+    <div style="font-size:11px;letter-spacing:2px;color:#1a2a3a;text-align:left;margin-bottom:6px;font-weight:bold;">USER NAME</div>
+    <input id="loginInput" type="text" placeholder="輸入用戶名..." onkeydown="if(event.key==='Enter')doLogin()"
+      style="width:100%;background:#fff;border:1px solid #a8cce8;color:#1a2a3a;padding:9px 12px;font-family:'Courier New',monospace;font-size:13px;outline:none;margin-bottom:16px;">
+    <div id="loginError" style="color:#c94444;font-size:11px;letter-spacing:1px;min-height:18px;margin-bottom:10px;"></div>
+    <button onclick="doLogin()"
+      style="width:100%;padding:10px;border:1px solid #1a6fb5;background:transparent;color:#1a6fb5;font-family:'Courier New',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;">
+      LOGIN
+    </button>
+  </div>
+</div>
+
+<!-- Main App (hidden until login) -->
+<div id="mainApp" style="display:none;">
+
 <header>
   <div class="title">DATA SEARCH SYSTEM</div>
   <div class="subtitle">// GOOGLE SHEETS QUERY INTERFACE</div>
@@ -350,8 +369,21 @@
   </div>
 
 </div>
+</div><!-- end mainApp -->
 
 <script>
+  const VALID_USER = 'vince1688';
+
+  function doLogin() {
+    const val = document.getElementById('loginInput').value.trim();
+    if (val === VALID_USER) {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+    } else {
+      document.getElementById('loginError').textContent = 'USER NAME ERROR';
+    }
+  }
+
   const API_URLS = [
     'https://script.google.com/macros/s/AKfycbxd3HBOqRaszA-KVDwD6vkOBldslJpeZJ06fHZ93-QMqe54FxiIYmPd0JhQDMZrG5oS/exec',
     'https://script.google.com/macros/s/AKfycbwxquv-zONGmep-TSIoJPhVe2sj1XSLaLQOXWQ0Xx4h_O312VhxPSDRvNf3lYSS6utg/exec'
