@@ -352,7 +352,10 @@
 </div>
 
 <script>
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxd3HBOqRaszA-KVDwD6vkOBldslJpeZJ06fHZ93-QMqe54FxiIYmPd0JhQDMZrG5oS/exec';
+  const API_URLS = [
+    'https://script.google.com/macros/s/AKfycbxd3HBOqRaszA-KVDwD6vkOBldslJpeZJ06fHZ93-QMqe54FxiIYmPd0JhQDMZrG5oS/exec',
+    'https://script.google.com/macros/s/AKfycbwxquv-zONGmep-TSIoJPhVe2sj1XSLaLQOXWQ0Xx4h_O312VhxPSDRvNf3lYSS6utg/exec'
+  ];
 
   const SEARCH_FIELDS = [
     '会员', '姓名', '銀行卡', 'USDT地址', '购宝钱包', '設備唯一碼', 'IP'
@@ -420,13 +423,15 @@
     document.getElementById('countDisplay').textContent = '—';
 
     try {
-      // Fetch all data once, then cache
+      // Fetch all APIs simultaneously, then cache combined results
       if (!cachedData) {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        // Response is a plain array
-        cachedData = Array.isArray(json) ? json : (json.data || []);
+        const results = await Promise.all(API_URLS.map(async url => {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          return Array.isArray(json) ? json : (json.data || []);
+        }));
+        cachedData = results.flat();
       }
 
       // Client-side filtering (OR across fields, OR across comma-separated terms)
