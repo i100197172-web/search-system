@@ -503,8 +503,9 @@
         return Object.values(params).some(({ val, keys }) => {
           const terms = val.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
           return keys.some(key => {
-            const cellVal = String(row[key] ?? '').toLowerCase();
-            return terms.some(t => cellVal.includes(t));
+            const raw = String(row[key] ?? '').replace(/\r/g, '').replace(/[^\S\n]+/g, ' ');
+            const tokens = raw.split('\n').map(t => t.trim().toLowerCase()).filter(t => t);
+            return terms.some(t => tokens.some(token => token === t));
           });
         });
       });
@@ -524,8 +525,9 @@
       .filter(([label, { val, keys }]) => {
         const terms = val.split(',').map(t => t.trim().toLowerCase()).filter(t => t);
         return keys.some(key => {
-          const cellVal = String(row[key] ?? '').toLowerCase();
-          return terms.some(t => cellVal.includes(t));
+          const raw = String(row[key] ?? '').replace(/\r/g, '').replace(/[^\S\n]+/g, ' ');
+          const tokens = raw.split('\n').map(t => t.trim().toLowerCase()).filter(t => t);
+          return terms.some(t => tokens.some(token => token === t));
         });
       })
       .map(([label]) => label);
